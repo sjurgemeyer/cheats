@@ -1,15 +1,27 @@
 % shaun
 
-# test cheat [st]
-echo "it worked"
-echo "multiline worked"
-
-
-# another cheat [att]
-echo "it worked really"
-echo "multiline worked"
+# test cheat [st] {arg1 arg2}
+echo "it worked <arg1>"
+echo "2nd arg worked <arg2>"
 
 % git
+
+# Add a remote based on current origin for a different user
+new_remote=`git remote -v | grep -m 1 origin | sed -En 's/origin[\s]*(.*\.git).*$/\1/p' | sed -En 's/^[[:space:]]*(.*)'"$git_username"'(.*)/\1'"<remote_user>"'\2/p'`
+git remote add <remote_name> $new_remote
+echo Added remote <remote_name> for $new_remote
+
+$ remote_user: echo ""
+$ remote_name: echo "<remote_user>"
+
+# clone with origin and upstream
+project=`echo <git_url> | sed -En 's/.*\/(.*).git$/\1/p'`
+base=`echo <git_url> | sed -En 's/(.*):.*.git$/\1/p'`
+git clone <git_url>
+cd $project
+git remote rename origin upstream
+git remote add origin $base:$git_username/$project.git
+cd -
 
 # recent branches [branches]
 git for-each-ref --sort=-committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
@@ -23,15 +35,58 @@ else
     git pull upstream main
 fi
 
+# Create clean branch from main
+git checkout main
+git checkout -b <branch_name>
+
+# Rename remote
+git remote rename <old_name> <new_name>
+
+$ old_name: echo "origin upstream" | tr ' ' '\n'
+$ new_name: echo "upstream origin" | tr ' ' '\n'
+
+# Rename branch
+git branch -m <new_name>
+
+# Delete and recreate an branch [gdb] {branch}
+git d <branch>
+git b <branch>
+
+# List authors for a repo
+git ls-tree --name-only -r HEAD | grep -E $1 | xargs -n1 git blame --line-porcelain | grep "^author "|sort|uniq -c|sort -nr
 
 
-% nav
-# Navigate to dotfiles [dot]
-cd $PROJECT_DIR/dotfiles
+# List changes between two provided revisions
+git log --no-merges --format="%s" <rev1>...<rev2>
 
+# List changes since a revision
+git fetch upstream
+git log --no-merges --format="%s" <rev1>...upstream/main
 
-# find-in-file - usage: fif <searchTerm> [fif]
-fif() {
-  if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
-  rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
-}
+$ rev1: git log --oneline --- --fzf-overrides --no-sort --map "sed -En 's/ .*//p'"
+$ rev2: git log --oneline --- --fzf-overrides --no-sort --map "sed -En 's/ .*//p'"
+
+# find-in-file match in file with navigation [fif] {search_term}
+rg --files-with-matches --no-messages "<search_term>" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '<search_term>' || rg --ignore-case --pretty --context 10 '<search_term>' {}"
+
+% vim
+
+# Generate ctags
+repo_root=`git rev-parse --show-toplevel || pwd`
+
+pushd $repo_root >> /dev/null
+
+echo "Processing $repo_root..."
+
+ctags -R
+
+if [ -e .ctags-projects ]; then
+    for project in `cat .ctags-projects`; do
+        echo "Processing $HOME/$project..."
+        ctags -R -a $HOME/$project
+    done
+fi
+popd >> /dev/null
+
+echo "Done."
+
