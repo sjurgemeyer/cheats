@@ -1,0 +1,37 @@
+% shaun
+
+# test cheat [st]
+echo "it worked"
+echo "multiline worked"
+
+
+# another cheat [att]
+echo "it worked really"
+echo "multiline worked"
+
+% git
+
+# recent branches [branches]
+git for-each-ref --sort=-committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
+
+# Move to main and update to latest from upstream [gum]
+if [[ `git status --porcelain` ]]; then
+    echo "Changes exist to current branch, exiting"
+else
+    git checkout main
+    git fetch upstream
+    git pull upstream main
+fi
+
+
+
+% nav
+# Navigate to dotfiles [dot]
+cd $PROJECT_DIR/dotfiles
+
+
+# find-in-file - usage: fif <searchTerm> [fif]
+fif() {
+  if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+  rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
+}
