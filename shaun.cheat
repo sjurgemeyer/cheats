@@ -35,7 +35,19 @@ else
     git pull upstream main
 fi
 
-# Create clean branch from main
+# Hard reset to upstream main
+git reset --hard
+git fetch upstream
+git pull upstream main
+
+# Stash, update master, and pop
+git stash -u
+git reset --hard
+git fetch upstream
+git pull upstream main
+git pop
+
+# Create clean branch from main [branch] {branch_name}
 git checkout main
 git checkout -b <branch_name>
 
@@ -61,13 +73,48 @@ git log --no-merges --format="%s" <rev1>...<rev2>
 
 # List changes since a revision
 git fetch upstream
-git log --no-merges --format="%s" <rev1>...upstream/main
 
 $ rev1: git log --oneline --- --fzf-overrides --no-sort --map "sed -En 's/ .*//p'"
 $ rev2: git log --oneline --- --fzf-overrides --no-sort --map "sed -En 's/ .*//p'"
 
 # find-in-file match in file with navigation [fif] {search_term}
 rg --files-with-matches --no-messages "<search_term>" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '<search_term>' || rg --ignore-case --pretty --context 10 '<search_term>' {}"
+
+
+# Delete all branches that have been merged to master [cleanBranches]
+git branch --merged | grep -v "main|master|release|\*" | grep -v "\*" | xargs -n 1 git branch -d
+echo "=============="
+git branch -vv
+
+# Interactive cleanup of local and remote branches [cleanAllBranches]
+git remote prune origin
+git remote prune upstream
+git checkout main
+git branch --merged | grep -v "main||master|release|\*" | grep -v "\*" | xargs -n 1 git branch -d
+for i in `git -c color.status=false branch -a | sed 's/.* //' | egrep -v ".*HEAD.*|.*upstream/.*"`; do
+    echo -e "\nDelete branch $i? (Y)es/(n)o/(c)ancel"
+    read foo
+    if [ "$foo" = "Y" ]; then
+        echo -e "\n"
+        if [[ "$i" =~ remotes/origin.* ]]; then
+            export BRANCHNAME=`echo "$i" | sed 's/remotes\/origin\/\(.*$\)/\1/'`
+            # Delete branch on origin
+            git push origin :$BRANCHNAME
+        else
+            # Delete local branch
+            git branch -D $i
+        fi
+    else
+        if [ "$confirm" = "c" ]; then
+            echo -e "\nCancelling delete branch script"
+            exit 0
+        fi
+    fi
+done
+echo -e "\n"
+echo "Cleanup complete"
+git branch -a
+
 
 % vim
 
@@ -90,3 +137,105 @@ popd >> /dev/null
 
 echo "Done."
 
+% gradle
+
+# Run test [gt] {project test}
+echo "./gradlew -p <project> test --tests <test>"
+./gradlew -p <project> test --tests <test>
+$ project: fd "build.gradle|gradle.kts" | sed 's,/[^/]*$,/,'
+$ test: fd 'Test|Spec' <project> | sed s,.*src/test/,,g | sed s,/,.,g | sed s,.kt,, | sed s,.groovy,,
+
+# Open test results [results]
+open <testresults>
+$ testresults: fd -p test/index.html
+
+% tail
+
+# Tail as format [tailas] {file format}
+tail -f <file> | bat --paging=never -l $2
+
+# Tail as json [tailj] {file}
+tail -f <file> | bat --paging=never -l json
+
+# Tail as json [taill] {file}
+tail -f <file> | bat --paging=never -l log
+
+# Tail as json [tailc] {file}
+tail -f <file> | bat --paging=never -l csv
+
+
+% docker
+
+# stop all running docker containers [dsa]
+docker stop $(docker ps -a -q)
+
+# bring up the containers in ./docker-compose.yml [dcu]
+docker-compose up -d
+
+# delete all containers, all containers must be stopped or an error will occur [dda]
+docker rm $(docker ps -a -q)
+
+# stop all running containers, then bring up the containers in ./docker-compose.yml [dra]
+docker stop $(docker ps -a -q)
+docker-compose up -d
+
+# stop all containers, delete all containers, then bring up the containers in ./docker-compose.yml
+docker stop $(docker ps -a -q)
+docker rm $(docker ps -a -q)
+docker-compose up -d
+
+
+% java
+
+# print classes in jar [printClassesInJar]
+jar tf $1 | grep .class | grep -v '\$' | grep -v 'package-info' | sed s,/,.,g | sed s/.class//g
+
+
+% iterm
+
+# reset tab color [resettab]
+echo -ne "\033]6;1;bg;*;default\a"
+
+# set tab color [tabcolor]
+resettab
+echo -ne "\033]6;1;bg;<tabcolor>;brightness;255\a"
+
+# set tab title [tabtitle]
+echo -ne "\e]1;$1\a"
+
+# search for process [p]
+ps -el | fzf
+
+% compression
+
+# Untar a gzip'ed file
+tar -xzvf <GzipTarFile>
+
+# Untar a bzip'ed file
+tar -xjvf <BzipTarFile>
+
+# Tar and zip a file or directory (recursively)
+tar -czvf <ArchiveName> <FileOrDirectory>
+
+
+tar cf <name>.tar <files>
+
+# Extract the files from a tar
+tar xf <tar_file>
+
+# Create a tar with Gzip compression
+tar czf <name>.tar.gz <files>
+
+# Extract a tar using Gzip
+tar xzf <targz_file>
+
+# Compress file and appends .gz to its name
+gzip <path>
+
+# Decompress compressed file
+gzip -d <gz_file>
+
+$ path: ls
+$ tar_file: ls *.tar
+$ targz_file: ls *.tar.gz
+$ gz_file: ls *.gz
