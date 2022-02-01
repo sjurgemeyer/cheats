@@ -6,6 +6,10 @@ echo "2nd arg worked <arg2>"
 
 % git
 
+# Force push current branch to master [gfo] {current_branch}
+git push -f origin <current_branch>
+
+$ current_branch: git branch --show-current
 # Add a remote based on current origin for a different user
 new_remote=`git remote -v | grep -m 1 origin | sed -En 's/origin[\s]*(.*\.git).*$/\1/p' | sed -En 's/^[[:space:]]*(.*)'"$git_username"'(.*)/\1'"<remote_user>"'\2/p'`
 git remote add <remote_name> $new_remote
